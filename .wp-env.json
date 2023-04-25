@@ -1,0 +1,8 @@
+{
+    "core": "WordPress/WordPress#5.4.2",
+    "themes": ["bu-ist/responsive-framework"],
+    "phpVersion": "7.4",
+    "plugins": [
+        "."
+    ]
+}

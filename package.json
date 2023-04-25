@@ -1,0 +1,15 @@
+{
+  "name": "bu-media-s3",
+  "version": "0.1.0",
+  "description": "Integrations between WordPress and AWS S3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "wp-env": "wp-env"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@wordpress/env": "^5.16.0"
+  }
+}
