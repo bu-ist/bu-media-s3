@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "wp-env": "wp-env"
+    "wp-env": "wp-env",
+    "wp-env:start": "wp-env start --debug",
+    "wp-env:stop": "wp-env stop",
+    "wp-env:bash": "wp-env run cli bash"
   },
   "author": "",
   "license": "ISC",
