@@ -10,6 +10,9 @@
  * @package BU MediaS3
  **/
 
+
+require_once dirname( __FILE__ ) . '/src/s3-assets.php';
+
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once dirname( __FILE__ ) . '/src/wp-cli-commands.php';
 }

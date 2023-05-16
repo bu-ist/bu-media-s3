@@ -2,6 +2,23 @@
 
 namespace BU\Plugins\MediaS3;
 
+/**
+ * Takes the output of get_custom_image_sizes() and updates the DynamoDB table.
+ *
+ * Note: this is using get_custom_image_sizes(), but there is also a function
+ * called wp_get_registered_image_subsizes(). and I don't super understand the differences.
+ *
+ * @return void
+ */
+function update_dynamodb_sizes_cmd() {
+	$client = new_dynamodb_client();
+
+	$result = update_dynamodb_sizes( $client, get_custom_image_sizes() );
+
+	\WP_CLI::success( 'Updated DynamoDB table with custom crop factors.' );
+}
+\WP_CLI::add_command( 's3media update-dynamodb-sizes', __NAMESPACE__ . '\\update_dynamodb_sizes_cmd' );
+
 function get_custom_image_sizes() {
 	$image_sizes = wp_get_registered_image_subsizes();
 
