@@ -1,6 +1,8 @@
 <?php
 /**
- * Functions associated with S3 assets.
+ * WP-CLI commands for working with protected S3 media.
+ *
+ * The command is called 's3media' instead of 'media-s3' just because I don't want to have to type an extra hyphen right now.
  *
  * @package BU MediaS3
  */
