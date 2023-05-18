@@ -15,8 +15,6 @@ namespace BU\Plugins\MediaS3;
  * Custom crop gravities are stored in the same DynamoDB table as the BU Access Control rules.
  * This function takes the output of get_custom_image_sizes(), writes it to a JSON string
  * and updates the DynamoDB table entry for this site.
- * Note: this is using get_custom_image_sizes(), but there is also a function
- * called wp_get_registered_image_subsizes(). and I don't super understand the differences.
  *
  * @return void
  */
@@ -31,10 +29,6 @@ function update_dynamodb_sizes_cmd() {
 
 /**
  * Report on the custom crop factors for a site.
- *
- * Note: this uses wp_get_registered_image_subsizes() just because that what I was looking at when I wrote this.
- * I think wp_get_registered_image_subsizes() may be a bit more comprehensive in that it includes the default
- * crop factors from WordPress itself, but I haven't yet tracked down that detail.
  *
  * @since 0.0.1
  *

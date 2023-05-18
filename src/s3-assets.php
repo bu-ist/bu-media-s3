@@ -37,7 +37,8 @@ function new_dynamodb_client() {
 /**
  * Update the DynamoDB table with the custom crop factors for a site.
  *
- * The DynamoDB table is keyed on the site and group name.
+ * Takes the output of wp_get_registered_image_subsizes(), encodes it to JSON, and writes it to the DynamoDB table.
+ * The DynamoDB table name is set as a global and is also used by bu-access-control.
  *
  * @since 0.0.1
  *
