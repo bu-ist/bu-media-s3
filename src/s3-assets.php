@@ -42,10 +42,9 @@ function new_dynamodb_client() {
  * @since 0.0.1
  *
  * @param DynamoDbClient $client The DynamoDB client.
- * @param array          $sizes  The array of custom crop factors.
  * @return array The result of the DynamoDB putItem operation.
  */
-function update_dynamodb_sizes( $client, $sizes ) {
+function update_dynamodb_sizes( $client ) {
 
 	// Get the site and the group name slug for the primary key.
 	// First get the siteurl without the protocol.

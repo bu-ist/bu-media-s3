@@ -23,7 +23,7 @@ namespace BU\Plugins\MediaS3;
 function update_dynamodb_sizes_cmd() {
 	$client = new_dynamodb_client();
 
-	$result = update_dynamodb_sizes( $client, get_custom_image_sizes() );
+	$result = update_dynamodb_sizes( $client );
 
 	\WP_CLI::success( 'Updated DynamoDB table with custom crop factors.' );
 }
