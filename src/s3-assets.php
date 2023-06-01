@@ -42,11 +42,11 @@ function new_dynamodb_client() {
  *
  * @since 0.0.1
  *
- * @param DynamoDbClient $client The DynamoDB client.
  * @return array The result of the DynamoDB putItem operation.
  */
-function update_dynamodb_sizes( $client ) {
+function update_dynamodb_sizes() {
 
+	$client = new_dynamodb_client();
 	// Get the site and the group name slug for the primary key.
 	// First get the siteurl without the protocol.
 	$site_key = str_replace( array( 'http://', 'https://' ), '', get_site_url() );
