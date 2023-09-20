@@ -1,6 +1,6 @@
 <?php
 /**
- * Functions associated with S3 assets.
+ * Functions associated with managing custom size records in dynamodb.
  *
  * @package BU MediaS3
  */
