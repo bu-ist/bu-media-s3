@@ -5,6 +5,8 @@
  * @package BU MediaS3
  */
 
+namespace BU\Plugins\MediaS3;
+
 // Conditionally adds a filter only during the upload process, this filter adds a second filter that removes all the image sizes.
 add_filter(
 	'wp_handle_upload_prefilter',
