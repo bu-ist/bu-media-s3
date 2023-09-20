@@ -26,7 +26,6 @@ add_filter(
 	}
 );
 
-// Add a hook to delete the custom crop factors from the DynamoDB table when a site is deleted.
 // Add a hook to delete AWS resources when a site is deleted.
 add_action(
 	'wp_delete_site',
