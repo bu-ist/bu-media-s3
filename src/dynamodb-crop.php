@@ -64,9 +64,11 @@ function update_dynamodb_sizes() {
 		);
 		return $result;
 	} catch ( DynamoDbException $e ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		error_log( $e->getMessage() );
 		return $e;
 	} catch ( AwsException $e ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		error_log( $e->getMessage() );
 		return $e;
 	}
