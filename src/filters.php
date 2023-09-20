@@ -23,3 +23,13 @@ add_filter(
 		return $file;
 	}
 );
+
+// Add a hook to delete the custom crop factors from the DynamoDB table when a site is deleted.
+add_action(
+	'wp_delete_site',
+	function( $old_site ) {
+		delete_dynamodb_sizes( $old_site->siteurl );
+	},
+	10,
+	2
+);

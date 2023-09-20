@@ -76,3 +76,39 @@ function update_dynamodb_sizes() {
 
 }
 
+/**
+ * Delete the custom crop factors for a site from the DynamoDB table.
+ *
+ * @param string $siteurl The siteurl as reported by get_site_url().
+ * @return array|bool The result of the DynamoDB deleteItem operation.
+ */
+function delete_dynamodb_sizes( $siteurl ) {
+	$client = new_dynamodb_client();
+
+	// Calculate the site slug for the primary key.
+	$site_key = str_replace( array( 'http://', 'https://' ), '', $siteurl );
+
+	// Delete the sizes record from the DynamoDB table.
+	try {
+		$result = $client->deleteItem(
+			array(
+				'TableName' => ACCESS_RULES_TABLE, // Defined in the config file.
+				'Key'       => array(
+					'SiteAndGroupKey' => array( 'S' => "SIZES#{$site_key}" ),
+				),
+			)
+		);
+		return $result;
+	} catch ( DynamoDbException $e ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( $e->getMessage() );
+		return $e;
+	} catch ( AwsException $e ) {
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( $e->getMessage() );
+		return $e;
+	}
+
+	// Final return in case of error.
+	return false;
+}
