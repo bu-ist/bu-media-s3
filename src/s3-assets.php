@@ -71,3 +71,37 @@ function delete_full_media_library( $siteurl ) {
 	return true;
 
 }
+
+/**
+ * Delete the rendered media library files from S3.
+ *
+ * Deletes all of the rendered media library files from S3 for a given site url.
+ *
+ * @since 0.0.1
+ *
+ * @param string $siteurl The siteurl as reported by get_blog_details().
+ *
+ * @return bool True if successful, false if not.
+ */
+function delete_rendered_files( $siteurl ) {
+	// Create the S3 client, and get the bucket name and site key.
+	$s3_client = new_s3_client();
+	$bucket    = str_replace( '/original_media', '', S3_UPLOADS_BUCKET );
+	$site_key  = str_replace( array( 'http://', 'https://' ), '', $siteurl );
+
+	// Delete all of the rendered media library files.
+	try {
+		// Delete all of the rendered media library files.
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}" );
+
+	} catch ( AwsException $e ) {
+		// Handle the exception.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( $e->getMessage() );
+		// Return false if unsuccessful.
+		return false;
+	}
+
+	// Return true if successful.
+	return true;
+}
