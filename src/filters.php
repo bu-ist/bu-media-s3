@@ -26,6 +26,9 @@ add_filter(
 	}
 );
 
+// Disable the big image threshold, we don't want WordPress to do any resizing at all.
+add_filter( 'big_image_size_threshold', '__return_false' );
+
 // Add a hook to delete AWS resources when a site is deleted.
 add_action(
 	'wp_delete_site',
