@@ -57,8 +57,8 @@ function update_dynamodb_sizes() {
 			array(
 				'TableName' => ACCESS_RULES_TABLE, // Defined in the config file.
 				'Item'      => array(
-					'PK' => array( 'S' => "SIZES#{$site_key}" ),
-					'sizes'           => array( 'S' => wp_json_encode( wp_get_registered_image_subsizes() ) ),
+					'PK'    => array( 'S' => "SIZES#{$site_key}" ),
+					'sizes' => array( 'S' => wp_json_encode( wp_get_registered_image_subsizes() ) ),
 				),
 			)
 		);
