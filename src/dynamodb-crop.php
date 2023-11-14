@@ -57,7 +57,7 @@ function update_dynamodb_sizes() {
 			array(
 				'TableName' => ACCESS_RULES_TABLE, // Defined in the config file.
 				'Item'      => array(
-					'SiteAndGroupKey' => array( 'S' => "SIZES#{$site_key}" ),
+					'PK' => array( 'S' => "SIZES#{$site_key}" ),
 					'sizes'           => array( 'S' => wp_json_encode( wp_get_registered_image_subsizes() ) ),
 				),
 			)
@@ -96,7 +96,7 @@ function delete_dynamodb_sizes( $siteurl ) {
 			array(
 				'TableName' => ACCESS_RULES_TABLE, // Defined in the config file.
 				'Key'       => array(
-					'SiteAndGroupKey' => array( 'S' => "SIZES#{$site_key}" ),
+					'PK' => array( 'S' => "SIZES#{$site_key}" ),
 				),
 			)
 		);
