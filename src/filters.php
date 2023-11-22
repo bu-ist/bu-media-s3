@@ -7,6 +7,38 @@
 
 namespace BU\Plugins\MediaS3;
 
+/**
+ * Modifies the upload directory paths for multisite installations to use Amazon S3.
+ *
+ * This function changes the base URL and directory paths of the upload directory
+ * to point to an Amazon S3 bucket instead of the local filesystem. It also modifies
+ * the path and URL to include the subdirectory for the current site.
+ *
+ * This function is hooked to the 'upload_dir' filter.
+ *
+ * @param array $upload An array containing the paths and URLs for the upload directory.
+ * @return array The modified array with the new paths and URLs.
+ */
+function s3_multisite_upload_dir( $upload ) {
+	$pattern     = '#wp-content/uploads/sites/\d+#';
+	$replacement = 'files';
+
+	// If this is a subsite, replace the site-specific subdirectory with the generic one.
+	if ( preg_match( $pattern, $upload['baseurl'] ) ) {
+		$upload['baseurl'] = preg_replace( $pattern, $replacement, $upload['baseurl'] );
+	} else {
+		// If this is the main site, replace the root specific uploads directory with the generic one.
+		$upload['baseurl'] = str_replace( 'wp-content/uploads', $replacement, $upload['baseurl'] );
+	}
+
+	$upload['basedir'] = str_replace( 'http://', 's3://' . S3_UPLOADS_BUCKET . '/', $upload['baseurl'] );
+	$upload['path']    = $upload['basedir'] . $upload['subdir'];
+	$upload['url']     = $upload['baseurl'] . $upload['subdir'];
+
+	return $upload;
+}
+add_filter( 'upload_dir', __NAMESPACE__ . '\s3_multisite_upload_dir' );
+
 // Conditionally adds a filter only during the upload process, this filter adds a second filter that removes all the image sizes.
 add_filter(
 	'wp_handle_upload_prefilter',
