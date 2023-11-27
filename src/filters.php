@@ -31,7 +31,7 @@ function s3_multisite_upload_dir( $upload ) {
 		$upload['baseurl'] = str_replace( 'wp-content/uploads', $replacement, $upload['baseurl'] );
 	}
 
-	$upload['basedir'] = str_replace( 'http://', 's3://' . S3_UPLOADS_BUCKET . '/', $upload['baseurl'] );
+	$upload['basedir'] = str_replace( array( 'http://', 'https://' ), 's3://' . S3_UPLOADS_BUCKET . '/', $upload['baseurl'] );
 	$upload['path']    = $upload['basedir'] . $upload['subdir'];
 	$upload['url']     = $upload['baseurl'] . $upload['subdir'];
 
