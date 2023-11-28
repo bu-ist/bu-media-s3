@@ -7,7 +7,9 @@
         "squizlabs/php_codesniffer": "^3.7",
         "wp-coding-standards/wpcs": "^2.3"
     },
-    "require": {},
+    "require": {
+        "aws/aws-sdk-php": "^3.290"
+    },
     "config": {
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true
