@@ -18,3 +18,8 @@ require_once dirname( __FILE__ ) . '/src/filters.php';
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once dirname( __FILE__ ) . '/src/wp-cli-commands.php';
 }
+
+// Load the AWS SDK for PHP if it's not already loaded.
+if ( ! class_exists( 'Aws\S3\S3Client' ) ) {
+	require_once dirname( __FILE__ ) . '/vendor/autoload.php';
+}
