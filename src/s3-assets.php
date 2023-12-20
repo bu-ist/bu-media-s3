@@ -105,3 +105,19 @@ function delete_rendered_files( $siteurl ) {
 	// Return true if successful.
 	return true;
 }
+
+/**
+ * Check if an object exists in the S3 bucket.
+ *
+ * @param string $key The key of the object to check.
+ * @return bool True if the object exists, false if not.
+ */
+function s3_object_exists( $key ) {
+	$s3_client = new_s3_client();
+
+	$bucket = str_replace( '/original_media', '', S3_UPLOADS_BUCKET );
+
+	$result = $s3_client->doesObjectExist( $bucket, "original_media/{$key}" );
+
+	return $result;
+}
