@@ -109,6 +109,8 @@ function delete_rendered_files( $siteurl ) {
 /**
  * Check if an object exists in the S3 bucket.
  *
+ * @since 0.0.2
+ *
  * @param string $key The key of the object to check.
  * @return bool True if the object exists, false if not.
  */
