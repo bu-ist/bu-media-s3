@@ -1,6 +1,16 @@
 <?php
 /**
- * Adds filters to prevent WordPress from generating image sizes during the upload process.
+ * Media handling for S3 storage and multisite installations.
+ *
+ * This file contains functions to modify WordPress's default media handling behavior for multisite installations.
+ * It changes the upload directory paths to use Amazon S3 instead of the local filesystem, and suppresses the generation
+ * of additional image sizes during the upload process. Instead, it pre-generates metadata for these sizes without
+ * creating the actual resized images. It also disables the big image size threshold to prevent WordPress from doing any resizing
+ * on original media. When a site is deleted, it hooks into the 'wp_delete_site' action to delete the corresponding
+ * media library originals and custom crop factors from AWS resources.
+ *
+ * @link https://developer.wordpress.org/reference/hooks/upload_dir/
+ * @link https://developer.wordpress.org/reference/hooks/wp_handle_upload_prefilter/
  *
  * @package BU MediaS3
  */
@@ -43,6 +53,7 @@ function s3_multisite_upload_dir( $upload ) {
 add_filter( 'upload_dir', __NAMESPACE__ . '\s3_multisite_upload_dir' );
 
 // Conditionally adds a filter only during the upload process, this filter adds a second filter that removes all the image sizes.
+// It also adds a filter to preemptively add the sizes to the attachment metadata, otherwise the first filter would prevent the sizes from being added.
 add_filter(
 	'wp_handle_upload_prefilter',
 	function( $file ) {
@@ -56,10 +67,60 @@ add_filter(
 			6
 		);
 
+		// Preemptively add the sizes to the attachment metadata.
+		add_filter(
+			'wp_generate_attachment_metadata',
+			__NAMESPACE__ . '\generate_metadata_sizes',
+			10,
+			2
+		);
+
 		// We need to pass along the original prefilter value unaltered; we're not actually changing it, just using it as a hook for the resize filter.
 		return $file;
 	}
 );
+
+/**
+ * Generate metadata for image sizes without creating the actual resized images.
+ *
+ * This function gets the registered image sizes and calculates the filename for each size
+ * using the WordPress convention for size annotation. It then adds this information to the attachment metadata.
+ *
+ * This function is designed to be added to the wp_handle_upload_prefilter in order to restore the metadata that
+ * would have been generated. Becuase the sizes are being suppressed on upload, the actual resized images
+ * are not being created, but we still need to add the metadata for the sizes to the attachment. This function
+ * should have the effect of pre-generating the metadata for the sizes that would have been created.
+ *
+ * @param array $metadata      The attachment metadata.
+ * @param int   $attachment_id The ID of the attachment.
+ *
+ * @return array The modified attachment metadata, with added sizes.
+ */
+function generate_metadata_sizes( $metadata, $attachment_id ) {
+	// Get the registered image sizes.
+	$sizes = wp_get_registered_image_subsizes();
+
+	// Get the pathinfo for the original file.
+	$pathinfo = pathinfo( $metadata['file'] );
+
+	// Get the mime type for the original file.
+	$mime_type = get_post_mime_type( $attachment_id );
+
+	// Recalculate the sizes that would have been generated and add them to the metadata.
+	foreach ( $sizes as $size => $size_data ) {
+		// Calcualte the new filename by adding the size to the original filename using the WordPress convention.
+		$new_filename = $pathinfo['filename'] . '-' . $size_data['width'] . 'x' . $size_data['height'] . '.' . $pathinfo['extension'];
+
+		// Add the new size to the metadata.
+		$metadata['sizes'][ $size ] = array(
+			'file'      => $new_filename,
+			'width'     => $size_data['width'],
+			'height'    => $size_data['height'],
+			'mime-type' => $mime_type,
+		);
+	}
+	return $metadata;
+}
 
 // Disable the big image threshold, we don't want WordPress to do any resizing at all.
 add_filter( 'big_image_size_threshold', '__return_false' );
