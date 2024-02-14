@@ -15,6 +15,7 @@ require_once dirname( __FILE__ ) . '/src/dynamodb-crop.php';
 require_once dirname( __FILE__ ) . '/src/s3-assets.php';
 require_once dirname( __FILE__ ) . '/src/filters.php';
 
+// Load the WP-CLI commands if we're running in a CLI environment.
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
 	require_once dirname( __FILE__ ) . '/src/wp-cli-commands.php';
 }
