@@ -55,7 +55,7 @@ add_filter( 'upload_dir', __NAMESPACE__ . '\s3_multisite_upload_dir' );
 // Conditionally adds a filter only during the upload process, this filter adds a second filter that removes all the image sizes.
 // It also adds a filter to preemptively add the sizes to the attachment metadata, otherwise the first filter would prevent the sizes from being added.
 add_filter(
-	'wp_handle_upload_prefilter',
+	'wp_handle_upload',
 	function( $file ) {
 		// This filters the image sizes that are generated during the upload process, removing all of them by returning an empty array.
 		add_filter(
