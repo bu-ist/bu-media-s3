@@ -75,6 +75,11 @@ add_filter(
 			2
 		);
 
+		// For the times where this is invoked by something that replaces media, like enable-media-replace:
+		// This will delete any existing rendered media library files. On new uploads they won't exist, so it should be a no-op.
+		// For existing uploads it will delete the now-stale renders of the previous file.
+		delete_scaled_for_s3_key( $file['file'] );
+
 		// We need to pass along the original prefilter value unaltered; we're not actually changing it, just using it as a hook for the resize filter.
 		return $file;
 	}
