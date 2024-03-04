@@ -140,3 +140,19 @@ add_action(
 	10,
 	2
 );
+
+/**
+ * Add a filter to the wp_handle_replace event, declared by the enable-media-replace plugin.
+ * The filter passes the post ID of the file being replaced, and we use this to delete the old rendered media library files.
+ * Otherwise, the old scaled versions of the file won't be replaced with updated versions.
+ */
+add_filter(
+	'wp_handle_replace',
+	function( $post_details ) {
+		// Get the file path from the attachment ID.
+		$file = get_attached_file( $post_details['post_id'] );
+
+		// Delete the old rendered media library files for the file being replaced.
+		delete_scaled_for_s3_key( $file );
+	}
+);
