@@ -55,7 +55,7 @@ add_filter( 'upload_dir', __NAMESPACE__ . '\s3_multisite_upload_dir' );
 // Conditionally adds a filter only during the upload process, this filter adds a second filter that removes all the image sizes.
 // It also adds a filter to preemptively add the sizes to the attachment metadata, otherwise the first filter would prevent the sizes from being added.
 add_filter(
-	'wp_handle_upload_prefilter',
+	'wp_handle_upload',
 	function( $file ) {
 		// This filters the image sizes that are generated during the upload process, removing all of them by returning an empty array.
 		add_filter(
@@ -139,4 +139,20 @@ add_action(
 	},
 	10,
 	2
+);
+
+/**
+ * Add a filter to the wp_handle_replace event, declared by the enable-media-replace plugin.
+ * The filter passes the post ID of the file being replaced, and we use this to delete the old rendered media library files.
+ * Otherwise, the old scaled versions of the file won't be replaced with updated versions.
+ */
+add_filter(
+	'wp_handle_replace',
+	function( $post_details ) {
+		// Get the file path from the attachment ID.
+		$file = get_attached_file( $post_details['post_id'] );
+
+		// Delete the old rendered media library files for the file being replaced.
+		delete_scaled_for_s3_key( $file );
+	}
 );
