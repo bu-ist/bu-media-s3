@@ -99,18 +99,19 @@ add_filter(
 function generate_metadata_sizes( $metadata, $attachment_id ) {
 	// Get the registered image sizes.
 	$sizes = wp_get_registered_image_subsizes();
-	var_dump($sizes);
-	die();
-
+	$sizes = get_custom_image_sizes( );	
+	
 	// Get the pathinfo for the original file.
 	$pathinfo = pathinfo( $metadata['file'] );
 
 	// Get the mime type for the original file.
 	$mime_type = get_post_mime_type( $attachment_id );
+	$sizes = get_custom_image_sizes( );
+	
 
 	// Recalculate the sizes that would have been generated and add them to the metadata.
 	foreach ( $sizes as $size => $size_data ) {
-		// Calcualte the new filename by adding the size to the original filename using the WordPress convention.
+
 		$new_filename = $pathinfo['filename'] . '-' . $size_data['width'] . 'x' . $size_data['height'] . '.' . $pathinfo['extension'];
 
 		// Add the new size to the metadata.
