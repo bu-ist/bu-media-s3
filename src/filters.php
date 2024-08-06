@@ -104,9 +104,7 @@ function generate_metadata_sizes( $metadata, $attachment_id ) {
 	$pathinfo = pathinfo( $metadata['file'] );
 
 	// Get the mime type for the original file.
-	$mime_type = get_post_mime_type( $attachment_id );
-	$sizes = get_custom_image_sizes( );
-	
+	$mime_type = get_post_mime_type( $attachment_id );	
 
 	// Recalculate the sizes that would have been generated and add them to the metadata.
 	foreach ( $sizes as $size => $size_data ) {
