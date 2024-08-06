@@ -110,7 +110,7 @@ function generate_metadata_sizes( $metadata, $attachment_id ) {
 
 	// Recalculate the sizes that would have been generated and add them to the metadata.
 	foreach ( $sizes as $size => $size_data ) {
-
+		// Calcualte the new filename by adding the size to the original filename using the WordPress convention.
 		$new_filename = $pathinfo['filename'] . '-' . $size_data['width'] . 'x' . $size_data['height'] . '.' . $pathinfo['extension'];
 
 		// Add the new size to the metadata.
