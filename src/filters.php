@@ -99,6 +99,8 @@ add_filter(
 function generate_metadata_sizes( $metadata, $attachment_id ) {
 	// Get the registered image sizes.
 	$sizes = wp_get_registered_image_subsizes();
+	var_dump($sizes);
+	die();
 
 	// Get the pathinfo for the original file.
 	$pathinfo = pathinfo( $metadata['file'] );
