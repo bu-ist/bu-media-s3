@@ -106,16 +106,46 @@ function generate_metadata_sizes( $metadata, $attachment_id ) {
 	// Get the mime type for the original file.
 	$mime_type = get_post_mime_type( $attachment_id );
 
+	// Get the original image dimensions.
+	$original_width = $metadata['width'];
+	$original_height = $metadata['height'];
+
+	// Calculate the aspect ratio of the original image.
+	$aspect_ratio = $original_width / $original_height;
+
 	// Recalculate the sizes that would have been generated and add them to the metadata.
 	foreach ( $sizes as $size => $size_data ) {
-		// Calcualte the new filename by adding the size to the original filename using the WordPress convention.
-		$new_filename = $pathinfo['filename'] . '-' . $size_data['width'] . 'x' . $size_data['height'] . '.' . $pathinfo['extension'];
+		// Determine the new dimensions based on the aspect ratio, taking into account that either width or height may be 0.
+		if ( $size_data['width'] == 0 ) {
+			// Scale based on height only.
+			$new_height = $size_data['height'];
+			$new_width = (int) ( $new_height * $aspect_ratio );
+		} elseif ( $size_data['height'] == 0 ) {
+			// Scale based on width only.
+			$new_width = $size_data['width'];
+			$new_height = (int) ( $new_width / $aspect_ratio );
+		} else {
+			// Scale based on both dimensions.
+			$scale = min( $size_data['width'] / $original_width, $size_data['height'] / $original_height );
+			$new_width = (int) ( $original_width * $scale );
+			$new_height = (int) ( $original_height * $scale );
+		}
+
+		// Clamp the dimensions to the original image size if the new size is larger.
+		// Basically, we don't want to scale up the image.
+		if ( $new_width > $original_width  || $new_height > $original_height ) {
+			$new_width = $original_width;
+			$new_height = $original_height;
+		}
+
+		// Calculate the new filename by adding the size to the original filename using the WordPress convention.
+		$new_filename = $pathinfo['filename'] . '-' . $new_width . 'x' . $new_height . '.' . $pathinfo['extension'];
 
 		// Add the new size to the metadata.
 		$metadata['sizes'][ $size ] = array(
 			'file'      => $new_filename,
-			'width'     => $size_data['width'],
-			'height'    => $size_data['height'],
+			'width'     => $new_width,
+			'height'    => $new_height,
 			'mime-type' => $mime_type,
 		);
 	}
