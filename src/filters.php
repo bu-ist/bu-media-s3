@@ -52,33 +52,36 @@ function s3_multisite_upload_dir( $upload ) {
 }
 add_filter( 'upload_dir', __NAMESPACE__ . '\s3_multisite_upload_dir' );
 
-// Conditionally adds a filter only during the upload process, this filter adds a second filter that removes all the image sizes.
-// It also adds a filter to preemptively add the sizes to the attachment metadata, otherwise the first filter would prevent the sizes from being added.
+// Add a custom filter to indicate that this is an upload request.
 add_filter(
 	'wp_handle_upload',
 	function( $file ) {
-		// This filters the image sizes that are generated during the upload process, removing all of them by returning an empty array.
-		add_filter(
-			'image_resize_dimensions',
-			function( $orig_w, $orig_h ) {
-				return array();
-			},
-			10,
-			6
-		);
+		// Set a custom flag to indicate that this is an upload request.
+		add_filter('is_upload_request', '__return_true');
 
-		// Preemptively add the sizes to the attachment metadata.
-		add_filter(
-			'wp_generate_attachment_metadata',
-			__NAMESPACE__ . '\generate_metadata_sizes',
-			10,
-			2
-		);
+		// May still want to set a generate_metadata filter here to add the file size, which seems to be getting dropped.
 
 		// We need to pass along the original prefilter value unaltered; we're not actually changing it, just using it as a hook for the resize filter.
 		return $file;
 	}
 );
+
+// Add a custom filter to suppress resized image generation during the upload process.
+add_filter( 'wp_image_editors', function( $editors ) {
+	// Check if the custom flag indicating an upload request is set.
+	if ( apply_filters('is_upload_request', false) ) {
+		// This is an upload request, so we should use the custom image editor that skips saving the image to S3.
+		// Include the custom image editor that skips saving the image to S3.
+		require_once dirname( __FILE__ ) . '/s3uploads-plugin/class-skip-save-image-editor.php';
+
+		// Add the custom image editor to the list of available editors as the first editor, so that's what WordPress uses.
+		array_unshift( $editors, 'BU\Plugins\MediaS3\Skip_Save_Image_Editor' );
+	}
+
+	// Return the list of editors.
+	return $editors;
+} );
+
 
 /**
  * Generate metadata for image sizes without creating the actual resized images.
