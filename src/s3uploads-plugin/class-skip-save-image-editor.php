@@ -2,7 +2,8 @@
 /**
  * Image Editor subclass of the S3_Uploads plugin Image_Editor_Imagick class.
  *
- * This custom image editor is used to skip saving the image to S3.
+ * This custom image editor is used to skip saving the image to S3. It works by subclassing the
+ * S3_Uploads plugin's Image_Editor_Imagick class and overriding the _save method to skip saving the image to S3.
  *
  * @package BU MediaS3
  */
@@ -30,11 +31,14 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 		 */
 		list( $filename, $extension, $mime_type ) = $this->get_output_format( $filename, $mime_type );
 
-		// What we really need is to get the filename here, then return it without saving the image.
+		// Crucially, we need to determine the filename so we can return it correctly in the response.
 		if ( ! $filename ) {
 			$filename = parent::generate_filename( null, null, $extension );
 		}
 
+		// We don't want to save the image to S3, so we don't call the parent::_save method.
+
+		// Return the metadata for the image.
 		$response = [
 			'path'      => $filename,
 			'file'      => wp_basename( apply_filters( 'image_make_intermediate_size', $filename ) ),
