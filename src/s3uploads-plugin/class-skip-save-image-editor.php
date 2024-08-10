@@ -23,13 +23,26 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 	 * @return WP_Error|array{path: string, file: string, width: int, height: int, mime-type: string}
 	 */
 	protected function _save( $image, $filename = null, $mime_type = null ) {
-		// Skip saving the image
-		return [
-			'path'      => $filename ?: '',
-			'file'      => wp_basename( $filename ?: '' ),
+		/**
+		 * @var ?string $filename
+		 * @var string $extension
+		 * @var string $mime_type
+		 */
+		list( $filename, $extension, $mime_type ) = $this->get_output_format( $filename, $mime_type );
+
+		// What we really need is to get the filename here, then return it without saving the image.
+		if ( ! $filename ) {
+			$filename = parent::generate_filename( null, null, $extension );
+		}
+
+		$response = [
+			'path'      => $filename,
+			'file'      => wp_basename( apply_filters( 'image_make_intermediate_size', $filename ) ),
 			'width'     => $this->size['width'] ?? 0,
 			'height'    => $this->size['height'] ?? 0,
 			'mime-type' => $mime_type,
 		];
+
+		return $response;
 	}
 }
