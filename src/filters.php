@@ -88,7 +88,16 @@ add_filter( 'big_image_size_threshold', '__return_false' );
 // Add a hook to delete AWS resources when a site is deleted.
 add_action(
 	'wp_delete_site',
-	function( $old_site ) {
+	function ( $old_site ) {
+		// Verify that this site belongs to the current network.
+		if ( ! site_exists_in_current_network( $old_site->siteurl ) ) {
+			// Log the attempted deletion of a site that doesn't exist in the current network.
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( 'Attempted to delete S3 files for site %s which does not exist in the current network.', $old_site->siteurl ) );
+			// Skip deletion to avoid accidental data loss.
+			return;
+		}
+
 		// Delete the media library originals.
 		// This may need to be wrapped in a queued job, because we can't necessarily
 		// predict how long it takes to delete the files.
@@ -100,6 +109,46 @@ add_action(
 	10,
 	2
 );
+
+/**
+ * Check if a site URL exists in the current network.
+ *
+ * Protects against accidental deletion of content from mismatched sites
+ * when a site has been incorrectly copied between environments. For example,
+ * if a failed site content copy from www.example.edu to staging.example.edu leaves
+ * behind references to www.example.edu in the staging environment, we need to ensure
+ * that when a site is deleted in staging, we don't accidentally delete the www.example.edu
+ * media library from S3.
+ *
+ * @param string $site_url The site URL to check.
+ * @return bool True if the site exists in the current network, false otherwise.
+ */
+function site_exists_in_current_network( $site_url ) {
+	// Normalize the URL for comparison (remove protocol).
+	$normalized_url = str_replace( array( 'http://', 'https://' ), '', $site_url );
+
+	if ( ! is_multisite() ) {
+		// In non-multisite, only allow if it matches the current site.
+		$current_site_url   = get_option( 'siteurl' );
+		$normalized_current = str_replace( array( 'http://', 'https://' ), '', $current_site_url );
+		return $normalized_url === $normalized_current;
+	}
+
+	// For multisite, check if the site exists in the network.
+	$sites = get_sites( array( 'fields' => 'ids' ) );
+
+	foreach ( $sites as $site_id ) {
+		$current_site_url   = get_site_url( $site_id );
+		$normalized_current = str_replace( array( 'http://', 'https://' ), '', $current_site_url );
+
+		if ( $normalized_url === $normalized_current ) {
+			// This indicates the site exists in the current network, so immediately return true.
+			return true;
+		}
+	}
+
+	return false;
+}
 
 /**
  * Add a filter to the wp_handle_replace event, declared by the enable-media-replace plugin.
