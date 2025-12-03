@@ -90,10 +90,10 @@ add_action(
 	'wp_delete_site',
 	function ( $old_site ) {
 		// Verify that this site belongs to the current network.
-		if ( ! site_exists_in_current_network( $old_site->siteurl ) ) {
-			// Log the attempted deletion of a site that doesn't exist in the current network.
+		if ( ! site_belongs_to_current_network( $old_site ) ) {
+			// Log the attempted deletion of a site that doesn't belong to the current network.
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( sprintf( 'Attempted to delete S3 files for site %s which does not exist in the current network.', $old_site->siteurl ) );
+			error_log( sprintf( 'Attempted to delete S3 files for site %s which does not belong to the current network.', $old_site->siteurl ) );
 			// Skip deletion to avoid accidental data loss.
 			return;
 		}
@@ -111,42 +111,51 @@ add_action(
 );
 
 /**
- * Check if a site URL exists in the current network.
+ * Check if a site belongs to the current WordPress installation.
  *
  * Protects against accidental deletion of content from mismatched sites
  * when a site has been incorrectly copied between environments. For example,
- * if a failed site content copy from www.example.edu to staging.example.edu leaves
- * behind references to www.example.edu in the staging environment, we need to ensure
- * that when a site is deleted in staging, we don't accidentally delete the www.example.edu
- * media library from S3.
+ * if a failed site content copy from www.bu.edu to www-test.bu.edu leaves
+ * behind references to www.bu.edu in the staging environment, this function
+ * ensures we don't accidentally delete the www.bu.edu media library from S3.
  *
- * @param string $site_url The site URL to check.
- * @return bool True if the site exists in the current network, false otherwise.
+ * In a multi-network installation, this checks if the site's domain matches
+ * any network domain in the current installation's wp_site table.
+ *
+ * @param WP_Site $old_site The site object being deleted.
+ * @return bool True if the site belongs to the current installation, false otherwise.
  */
-function site_exists_in_current_network( $site_url ) {
-	// Normalize the URL for comparison (remove protocol).
-	$normalized_url = str_replace( array( 'http://', 'https://' ), '', $site_url );
+function site_belongs_to_current_network( $old_site ) {
+	global $wpdb;
 
 	if ( ! is_multisite() ) {
-		// In non-multisite, only allow if it matches the current site.
-		$current_site_url   = get_option( 'siteurl' );
-		$normalized_current = str_replace( array( 'http://', 'https://' ), '', $current_site_url );
-		return $normalized_url === $normalized_current;
+		// In non-multisite, compare the domain with current site domain.
+		$current_domain = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
+		return $old_site->domain === $current_domain;
 	}
 
-	// For multisite, check if the site exists in the network.
-	$sites = get_sites( array( 'fields' => 'ids' ) );
+	// For multisite/multi-network, check if the domain exists in any network in this installation.
+	// Query the wp_site table directly to get all network domains.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+	$network_domains = $wpdb->get_col( "SELECT domain FROM {$wpdb->base_prefix}site" );
 
-	foreach ( $sites as $site_id ) {
-		$current_site_url   = get_site_url( $site_id );
-		$normalized_current = str_replace( array( 'http://', 'https://' ), '', $current_site_url );
+	if ( empty( $network_domains ) ) {
+		// If we can't get network domains, fail safe and block deletion.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( 'Unable to retrieve network domains from wp_site table. Blocking deletion as a safety measure.' );
+		return false;
+	}
 
-		if ( $normalized_url === $normalized_current ) {
-			// This indicates the site exists in the current network, so immediately return true.
+	// Check if the site's domain matches any network domain in this installation.
+	foreach ( $network_domains as $network_domain ) {
+		// Require exact domain match to prevent cross-environment deletion.
+		// For example, this prevents sandbox.cms-devl.bu.edu from deleting www.bu.edu content.
+		if ( $old_site->domain === $network_domain ) {
 			return true;
 		}
 	}
 
+	// Domain not found in any network in this installation.
 	return false;
 }
 
