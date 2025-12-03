@@ -115,9 +115,9 @@ add_action(
  *
  * Protects against accidental deletion of content from mismatched sites
  * when a site has been incorrectly copied between environments. For example,
- * if a failed site content copy from www.bu.edu to www-test.bu.edu leaves
- * behind references to www.bu.edu in the staging environment, this function
- * ensures we don't accidentally delete the www.bu.edu media library from S3.
+ * if a failed site content copy from www.example.edu to www-test.example.edu leaves
+ * behind references to www.example.edu in the staging environment, this function
+ * ensures we don't accidentally delete the www.example.edu media library from S3.
  *
  * In a multi-network installation, this checks if the site's domain matches
  * any network domain in the current installation's wp_site table.
