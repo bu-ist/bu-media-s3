@@ -122,6 +122,10 @@ add_action(
  * In a multi-network installation, this checks if the site's domain matches
  * any network domain in the current installation's wp_site table.
  *
+ * This check is only performed right now on site deletion, which is an infrequent action
+ * that requires a high level of access. So we are not using caching or a lot of validation
+ * in order to keep the code simple and reliable.
+ *
  * @param WP_Site $old_site The site object being deleted.
  * @return bool True if the site belongs to the current installation, false otherwise.
  */
