@@ -89,6 +89,10 @@ add_filter( 'big_image_size_threshold', '__return_false' );
 add_action(
 	'wp_delete_site',
 	function ( $old_site ) {
+		// Add logging for site deletion actions to help with debugging and auditing.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf( 'wp_delete_site: initial hook, deleting S3 files and DynamoDB entries for site %s (ID: %d)', $old_site->siteurl, $old_site->id ) );
+
 		// Verify that this site belongs to the current network.
 		if ( ! site_belongs_to_current_network( $old_site ) ) {
 			// Log the attempted deletion of a site that doesn't belong to the current network.
@@ -105,6 +109,10 @@ add_action(
 
 		// Delete the custom crop factors from DynamoDB.
 		delete_dynamodb_sizes( $old_site->siteurl );
+
+		// Log completion of site deletion actions.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf( 'wp_delete_site: completed deletion of S3 files and DynamoDB entries for site %s (ID: %d)', $old_site->siteurl, $old_site->id ) );
 	},
 	10,
 	2
