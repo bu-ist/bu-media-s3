@@ -143,7 +143,7 @@ function site_belongs_to_current_network( $old_site ) {
 	if ( ! is_multisite() ) {
 		// In non-multisite, compare the domain with current site domain.
 		$current_domain = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
-		return $old_site->domain === $current_domain;
+		return wp_parse_url( $old_site->siteurl, PHP_URL_HOST ) === $current_domain;
 	}
 
 	// For multisite/multi-network, check if the domain exists in any network in this installation.
@@ -158,11 +158,15 @@ function site_belongs_to_current_network( $old_site ) {
 		return false;
 	}
 
+	// Extract domain from siteurl (which might be malformed, this is what we want to verify).
+	// The siturl is what is used to delete S3 files, so we want to verify it here.
+	$site_domain_from_siteurl = wp_parse_url( $old_site->siteurl, PHP_URL_HOST );
+
 	// Check if the site's domain matches any network domain in this installation.
 	foreach ( $network_domains as $network_domain ) {
 		// Require exact domain match to prevent cross-environment deletion.
 		// For example, this prevents sandbox.cms-devl.bu.edu from deleting www.bu.edu content.
-		if ( $old_site->domain === $network_domain ) {
+		if ( $site_domain_from_siteurl === $network_domain ) {
 			return true;
 		}
 	}
