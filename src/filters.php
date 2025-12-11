@@ -88,7 +88,20 @@ add_filter( 'big_image_size_threshold', '__return_false' );
 // Add a hook to delete AWS resources when a site is deleted.
 add_action(
 	'wp_delete_site',
-	function( $old_site ) {
+	function ( $old_site ) {
+		// Add logging for site deletion actions to help with debugging and auditing.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf( 'wp_delete_site: initial hook, deleting S3 files and DynamoDB entries for site %s (ID: %d)', $old_site->siteurl, $old_site->id ) );
+
+		// Verify that this site belongs to the current network.
+		if ( ! site_belongs_to_current_network( $old_site ) ) {
+			// Log the attempted deletion of a site that doesn't belong to the current network.
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( 'Attempted to delete S3 files for site %s which does not belong to the current network.', $old_site->siteurl ) );
+			// Skip deletion to avoid accidental data loss.
+			return;
+		}
+
 		// Delete the media library originals.
 		// This may need to be wrapped in a queued job, because we can't necessarily
 		// predict how long it takes to delete the files.
@@ -96,10 +109,71 @@ add_action(
 
 		// Delete the custom crop factors from DynamoDB.
 		delete_dynamodb_sizes( $old_site->siteurl );
+
+		// Log completion of site deletion actions.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( sprintf( 'wp_delete_site: completed deletion of S3 files and DynamoDB entries for site %s (ID: %d)', $old_site->siteurl, $old_site->id ) );
 	},
 	10,
 	2
 );
+
+/**
+ * Check if a site belongs to the current WordPress installation.
+ *
+ * Protects against accidental deletion of content from mismatched sites
+ * when a site has been incorrectly copied between environments. For example,
+ * if a failed site content copy from www.example.edu to www-test.example.edu leaves
+ * behind references to www.example.edu in the staging environment, this function
+ * ensures we don't accidentally delete the www.example.edu media library from S3.
+ *
+ * In a multi-network installation, this checks if the site's domain matches
+ * any network domain in the current installation's wp_site table.
+ *
+ * This check is only performed right now on site deletion, which is an infrequent action
+ * that requires a high level of access. So we are not using caching or a lot of validation
+ * in order to keep the code simple and reliable.
+ *
+ * @param WP_Site $old_site The site object being deleted.
+ * @return bool True if the site belongs to the current installation, false otherwise.
+ */
+function site_belongs_to_current_network( $old_site ) {
+	global $wpdb;
+
+	if ( ! is_multisite() ) {
+		// In non-multisite, compare the domain with current site domain.
+		$current_domain = wp_parse_url( get_option( 'siteurl' ), PHP_URL_HOST );
+		return wp_parse_url( $old_site->siteurl, PHP_URL_HOST ) === $current_domain;
+	}
+
+	// For multisite/multi-network, check if the domain exists in any network in this installation.
+	// Query the wp_site table directly to get all network domains.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+	$network_domains = $wpdb->get_col( "SELECT domain FROM {$wpdb->base_prefix}site" );
+
+	if ( empty( $network_domains ) ) {
+		// If we can't get network domains, fail safe and block deletion.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		error_log( 'Unable to retrieve network domains from wp_site table. Blocking deletion as a safety measure.' );
+		return false;
+	}
+
+	// Extract domain from siteurl (which might be malformed, this is what we want to verify).
+	// The siturl is what is used to delete S3 files, so we want to verify it here.
+	$site_domain_from_siteurl = wp_parse_url( $old_site->siteurl, PHP_URL_HOST );
+
+	// Check if the site's domain matches any network domain in this installation.
+	foreach ( $network_domains as $network_domain ) {
+		// Require exact domain match to prevent cross-environment deletion.
+		// For example, this prevents sandbox.cms-devl.bu.edu from deleting www.bu.edu content.
+		if ( $site_domain_from_siteurl === $network_domain ) {
+			return true;
+		}
+	}
+
+	// Domain not found in any network in this installation.
+	return false;
+}
 
 /**
  * Add a filter to the wp_handle_replace event, declared by the enable-media-replace plugin.
