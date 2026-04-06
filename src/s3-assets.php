@@ -54,10 +54,12 @@ function delete_full_media_library( $siteurl ) {
 	// because we can't necessarily predict how long it takes to delete the files.
 	try {
 		// Delete all of the original media library files.
-		$s3_client->deleteMatchingObjects( $bucket, "original_media/{$site_key}" );
+		// Add trailing slash to prevent prefix matching issues (e.g., 'sourcing' matching 'sourcing2018').
+		$s3_client->deleteMatchingObjects( $bucket, "original_media/{$site_key}/" );
 
 		// Delete all of the rendered media library files.
-		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}" );
+		// Add trailing slash to prevent prefix matching issues (e.g., 'sourcing' matching 'sourcing2018').
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}/" );
 
 	} catch ( AwsException $e ) {
 		// Handle the exception.
@@ -92,7 +94,8 @@ function delete_rendered_files( $siteurl ) {
 	// Delete all of the rendered media library files.
 	try {
 		// Delete all of the rendered media library files.
-		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}" );
+		// Add trailing slash to prevent prefix matching issues (e.g., 'sourcing' matching 'sourcing2018').
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}/" );
 
 	} catch ( AwsException $e ) {
 		// Handle the exception.
@@ -173,7 +176,8 @@ function delete_scaled_for_original( $path_fragment ) {
 	// Delete all of the rendered media library files.
 	try {
 		// Delete all of the rendered media library files.
-		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$path_fragment}" );
+		// Add trailing slash to prevent prefix matching issues (e.g., 'sourcing' matching 'sourcing2018').
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$path_fragment}/" );
 
 	} catch ( AwsException $e ) {
 		// Handle the exception.
