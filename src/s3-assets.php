@@ -175,9 +175,12 @@ function delete_scaled_for_original( $path_fragment ) {
 
 	// Delete all of the rendered media library files.
 	try {
-		// Delete all of the rendered media library files.
-		// Add trailing slash to prevent prefix matching issues (e.g., 'sourcing' matching 'sourcing2018').
-		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$path_fragment}/" );
+		// Delete scaled derivatives (e.g., 'image-300x300.jpg') for the given original.
+		// Prefix matching without trailing slash is intentional: rendered_media contains only
+		// regeneratable scaled files, so minor over-deletion (e.g., 'image' matching 'image2-300x300.jpg')
+		// is acceptable. The original is preserved, and any new request will regenerate the scaled file.
+		// This differs from original deletions where trailing slashes are critical to prevent cross-site data loss.
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$path_fragment}" );
 
 	} catch ( AwsException $e ) {
 		// Handle the exception.
