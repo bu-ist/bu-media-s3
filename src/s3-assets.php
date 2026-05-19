@@ -52,6 +52,32 @@ function delete_full_media_library( $siteurl ) {
 	$site_key  = str_replace( array( 'http://', 'https://' ), '', $siteurl );
 	$site_key  = rtrim( $site_key, '/' );
 
+	// Defense in depth: refuse main-site deletion without explicit override.
+	// WordPress core already prevents main site deletion from wp-admin, but this provides
+	// an additional safety check following the pattern of site_belongs_to_current_network().
+	if ( is_multisite() ) {
+		$url_parts = wp_parse_url( 'http://' . $site_key ); // Re-add protocol for parsing.
+		$domain    = $url_parts['host'];
+		$path      = isset( $url_parts['path'] ) ? $url_parts['path'] : '/';
+		$site      = get_site_by_path( $domain, $path );
+
+		// Fail closed: if we can't resolve the site, refuse deletion as a safety measure.
+		if ( ! $site ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( 'Cannot resolve siteurl %s to a known site. Blocking deletion as a safety measure.', $siteurl ) );
+			return false;
+		}
+
+		// Check if this is the main site and block deletion unless explicitly overridden.
+		if ( is_main_site( $site->blog_id ) ) {
+			if ( ! apply_filters( 'bu_media_s3_allow_main_site_deletion', false ) ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( sprintf( 'Refused to delete main-site media for %s without explicit override.', $siteurl ) );
+				return false;
+			}
+		}
+	}
+
 	// Delete the media library originals. This may need to be wrapped in a queued job,
 	// because we can't necessarily predict how long it takes to delete the files.
 	try {
