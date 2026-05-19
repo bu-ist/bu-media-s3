@@ -68,8 +68,11 @@ function delete_full_media_library( $siteurl ) {
 			return false;
 		}
 
-		// Check if this is the main site and block deletion unless explicitly overridden.
-		if ( is_main_site( $site->blog_id ) ) {
+		// Check if this is the main site of its network and block deletion unless explicitly overridden.
+		// Use get_main_site_id() with the resolved site's network ID to correctly identify main sites
+		// in multi-network setups (is_main_site() defaults to the current network context).
+		$main_site_id = get_main_site_id( $site->network_id );
+		if ( $site->blog_id === $main_site_id ) {
 			if ( ! apply_filters( 'bu_media_s3_allow_main_site_deletion', false ) ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				error_log( sprintf( 'Refused to delete main-site media for %s without explicit override.', $siteurl ) );
