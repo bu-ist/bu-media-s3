@@ -50,17 +50,17 @@ function delete_full_media_library( $siteurl ) {
 	$s3_client = new_s3_client();
 	$bucket    = str_replace( '/original_media', '', S3_UPLOADS_BUCKET );
 	$site_key  = str_replace( array( 'http://', 'https://' ), '', $siteurl );
+	$site_key  = rtrim( $site_key, '/' );
 
 	// Delete the media library originals. This may need to be wrapped in a queued job,
 	// because we can't necessarily predict how long it takes to delete the files.
 	try {
-		// Delete all of the original media library files.
-		// Add trailing slash to prevent prefix matching issues (e.g., 'sourcing' matching 'sourcing2018').
-		$s3_client->deleteMatchingObjects( $bucket, "original_media/{$site_key}/" );
-
-		// Delete all of the rendered media library files.
-		// Add trailing slash to prevent prefix matching issues (e.g., 'sourcing' matching 'sourcing2018').
-		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}/" );
+		// Uploads are constrained to /files/ by s3_multisite_upload_dir() (the upload_dir filter
+		// in filters.php). The Apache s3proxy Location regex ^/+([^/]+/){0,2}files/ enforces
+		// the same scope on reads. Deletion MUST match the same scope, or a root-site delete
+		// (e.g. www.bu.edu) would catch every nested subsite (e.g. www.bu.edu/admissions/files/).
+		$s3_client->deleteMatchingObjects( $bucket, "original_media/{$site_key}/files/" );
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}/files/" );
 
 	} catch ( AwsException $e ) {
 		// Handle the exception.
@@ -91,12 +91,14 @@ function delete_rendered_files( $siteurl ) {
 	$s3_client = new_s3_client();
 	$bucket    = str_replace( '/original_media', '', S3_UPLOADS_BUCKET );
 	$site_key  = str_replace( array( 'http://', 'https://' ), '', $siteurl );
+	$site_key  = rtrim( $site_key, '/' );
 
 	// Delete all of the rendered media library files.
 	try {
-		// Delete all of the rendered media library files.
-		// Add trailing slash to prevent prefix matching issues (e.g., 'sourcing' matching 'sourcing2018').
-		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}/" );
+		// Uploads are constrained to /files/ by s3_multisite_upload_dir(). Deletion must match
+		// the same scope to avoid root-site operations matching subsites (e.g., www.bu.edu
+		// catching www.bu.edu/admissions/files/).
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}/files/" );
 
 	} catch ( AwsException $e ) {
 		// Handle the exception.
