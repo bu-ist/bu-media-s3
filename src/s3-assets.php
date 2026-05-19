@@ -8,6 +8,7 @@
 namespace BU\Plugins\MediaS3;
 
 use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
 
 /**
  * Get the S3 client.
