@@ -38,6 +38,8 @@ function new_s3_client() {
  * Delete the entire media library from S3.
  *
  * Deletes all of the original and rendered media library files from S3 for a given site.
+ * Authorization checks (network membership, main-site guards) should be performed by the caller
+ * before invoking this function. This function focuses on the deletion execution.
  *
  * @since 0.0.1
  *
@@ -51,35 +53,6 @@ function delete_full_media_library( $site ) {
 	$bucket    = str_replace( '/original_media', '', S3_UPLOADS_BUCKET );
 	$site_key  = str_replace( array( 'http://', 'https://' ), '', $site->siteurl );
 	$site_key  = rtrim( $site_key, '/' );
-
-	// Defense in depth: refuse main-site deletion without explicit override.
-	// WordPress core already prevents main site deletion from wp-admin, but this provides
-	// an additional safety check following the pattern of site_belongs_to_current_network().
-	if ( is_multisite() ) {
-		$url_parts = wp_parse_url( 'http://' . $site_key ); // Re-add protocol for parsing.
-		$domain    = $url_parts['host'];
-		$path      = isset( $url_parts['path'] ) ? $url_parts['path'] : '/';
-		$site      = get_site_by_path( $domain, $path );
-
-		// Fail closed: if we can't resolve the site, refuse deletion as a safety measure.
-		if ( ! $site ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( sprintf( 'Cannot resolve siteurl %s to a known site. Blocking deletion as a safety measure.', $siteurl ) );
-			return false;
-		}
-
-		// Check if this is the main site of its network and block deletion unless explicitly overridden.
-		// Use get_main_site_id() with the resolved site's network ID to correctly identify main sites
-		// in multi-network setups (is_main_site() defaults to the current network context).
-		$main_site_id = get_main_site_id( $site->network_id );
-		if ( $site->blog_id === $main_site_id ) {
-			if ( ! apply_filters( 'bu_media_s3_allow_main_site_deletion', false ) ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( sprintf( 'Refused to delete main-site media for %s without explicit override.', $siteurl ) );
-				return false;
-			}
-		}
-	}
 
 	// Delete the media library originals. This may need to be wrapped in a queued job,
 	// because we can't necessarily predict how long it takes to delete the files.
