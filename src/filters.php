@@ -105,7 +105,7 @@ add_action(
 		// Delete the media library originals.
 		// This may need to be wrapped in a queued job, because we can't necessarily
 		// predict how long it takes to delete the files.
-		delete_full_media_library( $old_site->siteurl );
+		delete_full_media_library( $old_site );
 
 		// Delete the custom crop factors from DynamoDB.
 		delete_dynamodb_sizes( $old_site->siteurl );

@@ -37,19 +37,19 @@ function new_s3_client() {
 /**
  * Delete the entire media library from S3.
  *
- * Deletes all of the original and rendered media library files from S3 for a given site url.
+ * Deletes all of the original and rendered media library files from S3 for a given site.
  *
  * @since 0.0.1
  *
- * @param string $siteurl The siteurl as reported by get_blog_details().
+ * @param WP_Site $site The site object for the site whose media should be deleted.
  *
  * @return bool True if successful, false if not.
  */
-function delete_full_media_library( $siteurl ) {
+function delete_full_media_library( $site ) {
 	// Create the S3 client, and get the bucket name and site key.
 	$s3_client = new_s3_client();
 	$bucket    = str_replace( '/original_media', '', S3_UPLOADS_BUCKET );
-	$site_key  = str_replace( array( 'http://', 'https://' ), '', $siteurl );
+	$site_key  = str_replace( array( 'http://', 'https://' ), '', $site->siteurl );
 	$site_key  = rtrim( $site_key, '/' );
 
 	// Defense in depth: refuse main-site deletion without explicit override.
