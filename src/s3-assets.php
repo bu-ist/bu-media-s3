@@ -8,6 +8,7 @@
 namespace BU\Plugins\MediaS3;
 
 use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
 
 /**
  * Get the S3 client.
@@ -36,28 +37,32 @@ function new_s3_client() {
 /**
  * Delete the entire media library from S3.
  *
- * Deletes all of the original and rendered media library files from S3 for a given site url.
+ * Deletes all of the original and rendered media library files from S3 for a given site.
+ * Authorization checks (network membership, main-site guards) should be performed by the caller
+ * before invoking this function. This function focuses on the deletion execution.
  *
  * @since 0.0.1
  *
- * @param string $siteurl The siteurl as reported by get_blog_details().
+ * @param WP_Site $site The site object for the site whose media should be deleted.
  *
  * @return bool True if successful, false if not.
  */
-function delete_full_media_library( $siteurl ) {
+function delete_full_media_library( $site ) {
 	// Create the S3 client, and get the bucket name and site key.
 	$s3_client = new_s3_client();
 	$bucket    = str_replace( '/original_media', '', S3_UPLOADS_BUCKET );
-	$site_key  = str_replace( array( 'http://', 'https://' ), '', $siteurl );
+	$site_key  = str_replace( array( 'http://', 'https://' ), '', $site->siteurl );
+	$site_key  = rtrim( $site_key, '/' );
 
 	// Delete the media library originals. This may need to be wrapped in a queued job,
 	// because we can't necessarily predict how long it takes to delete the files.
 	try {
-		// Delete all of the original media library files.
-		$s3_client->deleteMatchingObjects( $bucket, "original_media/{$site_key}" );
-
-		// Delete all of the rendered media library files.
-		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}" );
+		// Uploads are constrained to /files/ by s3_multisite_upload_dir() (the upload_dir filter
+		// in filters.php). The Apache s3proxy Location regex ^/+([^/]+/){0,2}files/ enforces
+		// the same scope on reads. Deletion MUST match the same scope, or a root-site delete
+		// (e.g. www.bu.edu) would catch every nested subsite (e.g. www.bu.edu/admissions/files/).
+		$s3_client->deleteMatchingObjects( $bucket, "original_media/{$site_key}/files/" );
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}/files/" );
 
 	} catch ( AwsException $e ) {
 		// Handle the exception.
@@ -88,11 +93,14 @@ function delete_rendered_files( $siteurl ) {
 	$s3_client = new_s3_client();
 	$bucket    = str_replace( '/original_media', '', S3_UPLOADS_BUCKET );
 	$site_key  = str_replace( array( 'http://', 'https://' ), '', $siteurl );
+	$site_key  = rtrim( $site_key, '/' );
 
 	// Delete all of the rendered media library files.
 	try {
-		// Delete all of the rendered media library files.
-		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}" );
+		// Uploads are constrained to /files/ by s3_multisite_upload_dir(). Deletion must match
+		// the same scope to avoid root-site operations matching subsites (e.g., www.bu.edu
+		// catching www.bu.edu/admissions/files/).
+		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$site_key}/files/" );
 
 	} catch ( AwsException $e ) {
 		// Handle the exception.
@@ -172,7 +180,11 @@ function delete_scaled_for_original( $path_fragment ) {
 
 	// Delete all of the rendered media library files.
 	try {
-		// Delete all of the rendered media library files.
+		// Delete scaled derivatives (e.g., 'image-300x300.jpg') for the given original.
+		// Prefix matching without trailing slash is intentional: rendered_media contains only
+		// regeneratable scaled files, so minor over-deletion (e.g., 'image' matching 'image2-300x300.jpg')
+		// is acceptable. The original is preserved, and any new request will regenerate the scaled file.
+		// This differs from original deletions where trailing slashes are critical to prevent cross-site data loss.
 		$s3_client->deleteMatchingObjects( $bucket, "rendered_media/{$path_fragment}" );
 
 	} catch ( AwsException $e ) {

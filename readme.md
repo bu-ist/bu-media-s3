@@ -4,7 +4,7 @@ BU Media S3 is a WordPress plugin designed to work with the [Human Made S3 Uploa
 
 ## Features
 
-- **S3 Upload Directory**: The plugin filters the `upload_dir` hook and rewrites the values in a way that is compatible with the S3 Uploads plugin and the BU Protected S3 Object Lambda stack, redirecting all media uploads to the S3 bucket. It also changes the default upload location from `wp-content/uploads` to `files`, which is the convention for BU WordPress sites.
+- **S3 Upload Directory**: The plugin filters the `upload_dir` hook and rewrites the values in a way that is compatible with the S3 Uploads plugin and the BU Protected S3 Object Lambda stack, redirecting all media uploads to the S3 bucket. It also changes the default upload location from `wp-content/uploads` to `files`, which is the convention for BU WordPress sites. This `/files/` path constraint is enforced on writes by this plugin and on reads by the Apache s3proxy Location regex, ensuring consistent media scoping across the system.
 
 - **Prevent Image Scaling**: By default, WordPress generates scaled derivatives for every image size defined for the current site. This plugin sets a custom filter flag during the upload process and uses it to interpose a custom Image Editor object. This approach leverages the technique used by the S3 Uploads plugin, ensuring that the core WordPress image size metadata generation remains intact while skipping the actual resizing. This allows the BU Protected S3 Object Lambda stack to handle image resizing automatically, and preserves the attachment metadata for all defined sizes.
 

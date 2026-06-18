@@ -102,10 +102,22 @@ add_action(
 			return;
 		}
 
+		// Defense in depth: refuse main-site deletion without explicit override.
+		// WordPress core already prevents main site deletion from wp-admin, but this provides
+		// an additional safety check at the authorization boundary where we have the site object.
+		$main_site_id = get_main_site_id( $old_site->network_id );
+		if ( (int) $old_site->blog_id === (int) $main_site_id ) {
+			if ( ! apply_filters( 'bu_media_s3_allow_main_site_deletion', false ) ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( sprintf( 'Refused to delete main-site media for %s (ID: %d) without explicit override.', $old_site->siteurl, $old_site->blog_id ) );
+				return;
+			}
+		}
+
 		// Delete the media library originals.
 		// This may need to be wrapped in a queued job, because we can't necessarily
 		// predict how long it takes to delete the files.
-		delete_full_media_library( $old_site->siteurl );
+		delete_full_media_library( $old_site );
 
 		// Delete the custom crop factors from DynamoDB.
 		delete_dynamodb_sizes( $old_site->siteurl );
