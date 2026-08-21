@@ -55,9 +55,9 @@ add_filter( 'upload_dir', __NAMESPACE__ . '\s3_multisite_upload_dir' );
 // Add a custom filter to indicate that this is an upload request.
 add_filter(
 	'wp_handle_upload',
-	function( $file ) {
+	function ( $file ) {
 		// Set a custom flag to indicate that this is an upload request.
-		add_filter('is_upload_request', '__return_true');
+		add_filter( 'is_upload_request', '__return_true' );
 
 		// May still want to set a generate_metadata filter here to add the file size, which seems to be getting dropped.
 
@@ -194,7 +194,7 @@ function site_belongs_to_current_network( $old_site ) {
  */
 add_filter(
 	'wp_handle_replace',
-	function( $post_details ) {
+	function ( $post_details ) {
 		// Get the file path from the attachment ID.
 		$file = get_attached_file( $post_details['post_id'] );
 
