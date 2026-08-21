@@ -82,6 +82,9 @@ add_filter( 'wp_image_editors', function( $editors ) {
 	return $editors;
 } );
 
+// Disable WP 7.1's client-side media processing; no-op on WP < 7.1, where this filter doesn't exist yet.
+add_filter( 'wp_client_side_media_processing_enabled', '__return_false' );
+
 // Disable the big image threshold, we don't want WordPress to do any resizing at all.
 add_filter( 'big_image_size_threshold', '__return_false' );
 
