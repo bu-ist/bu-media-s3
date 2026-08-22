@@ -36,6 +36,15 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 			$filename = parent::generate_filename( null, null, $extension );
 		}
 
+		// On an image-edit request (crop/rotate/flip, flagged in filters.php), the edited full-size
+		// file is real new content and must actually be saved; only its registered sub-sizes (which
+		// always carry a -WxH suffix) should be suppressed, same as on upload.
+		$looks_scaled = ( preg_match( '/-\d+x\d+\./', $filename ) === 1 );
+		if ( apply_filters( 'is_image_edit_request', false ) && ! $looks_scaled ) {
+			// Return the original value to indicate that the image was saved.
+			return parent::_save( $image, $filename, $mime_type );
+		}
+
 		// We don't want to save the image to S3, so we don't call the parent::_save method.
 
 		// Return the metadata for the image.
