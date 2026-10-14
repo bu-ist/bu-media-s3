@@ -24,6 +24,13 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 	 * @return WP_Error|array{path: string, file: string, width: int, height: int, mime-type: string}
 	 */
 	protected function _save( $image, $filename = null, $mime_type = null ) {
+		// Detects real content vs. auto-named sub-size; the make_subsize() core function
+		// is the only caller we've identified that passes a null filename.
+		// Image edits always pass an explicit filename, and so do an upload's conditional
+		// conversions like rotation, when one of those is active.
+
+		$explicit_filename = ! empty( $filename );
+
 		/**
 		 * @var ?string $filename
 		 * @var string $extension
@@ -36,11 +43,8 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 			$filename = parent::generate_filename( null, null, $extension );
 		}
 
-		// On an image-edit request (crop/rotate/flip, flagged in filters.php), the edited full-size
-		// file is real new content and must actually be saved; only its registered sub-sizes (which
-		// always carry a -WxH suffix) should be suppressed, same as on upload.
-		$looks_scaled = ( preg_match( '/-\d+x\d+\./', $filename ) === 1 );
-		if ( apply_filters( 'is_image_edit_request', false ) && ! $looks_scaled ) {
+		// If we have an explicit filename, we infer this is real content and should be saved.
+		if ( $explicit_filename ) {
 			// Return the original value to indicate that the image was saved.
 			return parent::_save( $image, $filename, $mime_type );
 		}
