@@ -55,9 +55,9 @@ add_filter( 'upload_dir', __NAMESPACE__ . '\s3_multisite_upload_dir' );
 // Add a custom filter to indicate that this is an upload request.
 add_filter(
 	'wp_handle_upload',
-	function( $file ) {
+	function ( $file ) {
 		// Set a custom flag to indicate that this is an upload request.
-		add_filter('is_upload_request', '__return_true');
+		add_filter( 'is_upload_request', '__return_true' );
 
 		// May still want to set a generate_metadata filter here to add the file size, which seems to be getting dropped.
 
@@ -69,7 +69,7 @@ add_filter(
 // Add a custom filter to suppress resized image generation during the upload process.
 add_filter( 'wp_image_editors', function( $editors ) {
 	// Check if the custom flag indicating an upload request is set.
-	if ( apply_filters('is_upload_request', false) ) {
+	if ( apply_filters('is_upload_request', false) || apply_filters('is_image_edit_request', false) ) {
 		// This is an upload request, so we should use the custom image editor that skips saving the image to S3.
 		// Include the custom image editor that skips saving the image to S3.
 		require_once dirname( __FILE__ ) . '/s3uploads-plugin/class-skip-save-image-editor.php';
@@ -81,6 +81,41 @@ add_filter( 'wp_image_editors', function( $editors ) {
 	// Return the list of editors.
 	return $editors;
 } );
+
+// Requests to edit existing images (crop/rotate/flip) need the same derivative suppression that uploads get,
+// but core has no single hook that fires when an edit starts. This declares an is_image_edit_request flag
+// for the REST API path and the classic admin-ajax path, so they can be detected in the wp_image_editors filter.
+
+// This is the REST API path (block editor's edit modal). Must return $response as received.
+add_filter(
+	'rest_request_before_callbacks',
+	function ( $response, $handler, $request ) {
+		if ( 'POST' === $request->get_method() && preg_match( '#^/wp/v2/media/\d+/edit$#', $request->get_route() ) ) {
+			add_filter( 'is_image_edit_request', '__return_true' );
+		}
+
+		return $response;
+	},
+	10,
+	3
+);
+
+// Classic (non-block-editor) crop/rotate UI, via admin-ajax. Only 'save'/'scale' write new
+// derivatives; 'restore' reverts to the backed-up original through a different function.
+// Priority 0 is required: core's own handler for this action registers at priority 1.
+add_action(
+	'wp_ajax_image-editor',
+	function () {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only; this action's own handler (priority 1, runs after this) nonce-checks via check_ajax_referer() before anything consequential happens, and wp_die()s if it fails.
+		if ( isset( $_POST['do'] ) && in_array( sanitize_text_field( wp_unslash( $_POST['do'] ) ), array( 'save', 'scale' ), true ) ) {
+			add_filter( 'is_image_edit_request', '__return_true' );
+		}
+	},
+	0
+);
+
+// Disable WP 7.1's client-side media processing; no-op on WP < 7.1, where this filter doesn't exist yet.
+add_filter( 'wp_client_side_media_processing_enabled', '__return_false' );
 
 // Disable the big image threshold, we don't want WordPress to do any resizing at all.
 add_filter( 'big_image_size_threshold', '__return_false' );
@@ -194,7 +229,7 @@ function site_belongs_to_current_network( $old_site ) {
  */
 add_filter(
 	'wp_handle_replace',
-	function( $post_details ) {
+	function ( $post_details ) {
 		// Get the file path from the attachment ID.
 		$file = get_attached_file( $post_details['post_id'] );
 
