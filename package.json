@@ -1,6 +1,6 @@
 {
   "name": "bu-media-s3",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Integrations between WordPress and AWS S3",
   "main": "index.js",
   "scripts": {

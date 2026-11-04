@@ -3,7 +3,7 @@
  * Plugin Name: bu-media-s3
  * Plugin URI: https://github.com/bu-ist/bu-media-s3
  * Description: A plugin for integrating S3 with WordPress
- * Version: 1.2.2
+ * Version: 1.2.3
  * Author: Boston University
  * Author URI: https://developer.bu.edu/
  *
