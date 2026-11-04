@@ -120,6 +120,11 @@ add_filter( 'wp_client_side_media_processing_enabled', '__return_false' );
 // Disable the big image threshold, we don't want WordPress to do any resizing at all.
 add_filter( 'big_image_size_threshold', '__return_false' );
 
+// Disable core's media deletion in wp_uninitialize_site(), which deletes everything under the upload
+// basedir. That basedir can resolve to another site's media when the delete runs from Network Admin.
+// An empty path disables it, leaving the wp_delete_site hook below as the only media deletion.
+add_filter( 'wpmu_delete_blog_upload_dir', '__return_empty_string' );
+
 // Add a hook to delete AWS resources when a site is deleted.
 add_action(
 	'wp_delete_site',
