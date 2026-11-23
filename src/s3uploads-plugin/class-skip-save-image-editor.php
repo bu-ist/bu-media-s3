@@ -35,7 +35,8 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 		$height = $size_data['height'] ?? null;
 		$crop   = $size_data['crop'] ?? false;
 
-		// Core skips the resize here, and 5.8 and 7.1 differ on an equal size.
+		// Core answers these without a resize, and WordPress versions disagree
+		// on an equal size, so leave both to core.
 		$no_dimensions = null === $width && null === $height;
 		$same_size     = (int) $this->size['width'] === (int) $width && (int) $this->size['height'] === (int) $height;
 		if ( $no_dimensions || $same_size ) {
@@ -44,12 +45,13 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 
 		$dims = image_resize_dimensions( $this->size['width'], $this->size['height'], $width, $height, $crop );
 		if ( ! $dims ) {
-			return new WP_Error( 'error_getting_dimensions', __( 'Could not calculate resized image dimensions' ) );
+			return new WP_Error( 'error_getting_dimensions', __( 'Could not calculate resized image dimensions', 'bu-media-s3' ) );
 		}
 
-		// $dims[4] and $dims[5] are the resized width and height.
+		list( , , , , $dst_w, $dst_h ) = $dims;
+
 		$orig_size = $this->size;
-		$this->update_size( $dims[4], $dims[5] );
+		$this->update_size( $dst_w, $dst_h );
 		$saved      = $this->_save( $this->image );
 		$this->size = $orig_size;
 
@@ -69,10 +71,10 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 	 * @return WP_Error|array{path: string, file: string, width: int, height: int, mime-type: string}
 	 */
 	protected function _save( $image, $filename = null, $mime_type = null ) {
-		// Detects real content vs. auto-named sub-size; make_subsize()
-		// is the only caller we've identified that passes a null filename.
-		// Image edits always pass an explicit filename, and so do an upload's conditional
-		// conversions like rotation, when one of those is active.
+		// Detects real content vs. auto-named sub-size; make_subsize() is the only caller
+		// we've identified that passes a null filename. Image edits always pass an explicit
+		// filename, and so do an upload's conditional conversions like rotation, when one
+		// of those is active.
 
 		$explicit_filename = ! empty( $filename );
 
