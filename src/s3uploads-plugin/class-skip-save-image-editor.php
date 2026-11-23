@@ -3,7 +3,8 @@
  * Image Editor subclass of the S3_Uploads plugin Image_Editor_Imagick class.
  *
  * This custom image editor is used to skip saving the image to S3. It works by subclassing the
- * S3_Uploads plugin's Image_Editor_Imagick class and overriding the _save method to skip saving the image to S3.
+ * S3_Uploads plugin's Image_Editor_Imagick class and overriding the _save method to skip saving the image to S3,
+ * and the make_subsize method to skip resizing for sub-sizes.
  *
  * @package BU MediaS3
  */
@@ -16,6 +17,50 @@ use WP_Error;
 class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 
 	/**
+	 * Override the make_subsize method to skip resizing the image.
+	 *
+	 * _save() never writes a sub-size, so only its dimensions are needed.
+	 *
+	 * @param array $size_data {
+	 *     Array of size data.
+	 *
+	 *     @type int        $width  The maximum width in pixels.
+	 *     @type int        $height The maximum height in pixels.
+	 *     @type bool|array $crop   Whether to crop the image to exact dimensions.
+	 * }
+	 * @return array|WP_Error The image data array for the `sizes` array in the image meta, or WP_Error.
+	 */
+	public function make_subsize( $size_data ) {
+		$width  = $size_data['width'] ?? null;
+		$height = $size_data['height'] ?? null;
+		$crop   = $size_data['crop'] ?? false;
+
+		// Core skips the resize here, and 5.8 and 7.1 differ on an equal size.
+		$no_dimensions = null === $width && null === $height;
+		$same_size     = (int) $this->size['width'] === (int) $width && (int) $this->size['height'] === (int) $height;
+		if ( $no_dimensions || $same_size ) {
+			return parent::make_subsize( $size_data );
+		}
+
+		$dims = image_resize_dimensions( $this->size['width'], $this->size['height'], $width, $height, $crop );
+		if ( ! $dims ) {
+			return new WP_Error( 'error_getting_dimensions', __( 'Could not calculate resized image dimensions' ) );
+		}
+
+		// $dims[4] and $dims[5] are the resized width and height.
+		$orig_size = $this->size;
+		$this->update_size( $dims[4], $dims[5] );
+		$saved      = $this->_save( $this->image );
+		$this->size = $orig_size;
+
+		if ( ! is_wp_error( $saved ) ) {
+			unset( $saved['path'] );
+		}
+
+		return $saved;
+	}
+
+	/**
 	 * Override the _save method to skip saving the image to S3.
 	 *
 	 * @param Imagick $image
@@ -24,7 +69,7 @@ class Skip_Save_Image_Editor extends Image_Editor_Imagick {
 	 * @return WP_Error|array{path: string, file: string, width: int, height: int, mime-type: string}
 	 */
 	protected function _save( $image, $filename = null, $mime_type = null ) {
-		// Detects real content vs. auto-named sub-size; the make_subsize() core function
+		// Detects real content vs. auto-named sub-size; make_subsize()
 		// is the only caller we've identified that passes a null filename.
 		// Image edits always pass an explicit filename, and so do an upload's conditional
 		// conversions like rotation, when one of those is active.
