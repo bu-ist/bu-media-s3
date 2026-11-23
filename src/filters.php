@@ -114,6 +114,30 @@ add_action(
 	0
 );
 
+// Core's retry of an upload that failed partway creates the missing sub-sizes in a new request:
+// REST post-process from the block editor, admin-ajax media-create-image-subsizes from the Media Library.
+add_filter(
+	'rest_request_before_callbacks',
+	function ( $response, $handler, $request ) {
+		if ( 'POST' === $request->get_method() && preg_match( '#^/wp/v2/media/\d+/post-process$#', $request->get_route() ) ) {
+			add_filter( 'is_upload_request', '__return_true' );
+		}
+
+		return $response;
+	},
+	10,
+	3
+);
+
+// Priority 0, before core's handler at 1.
+add_action(
+	'wp_ajax_media-create-image-subsizes',
+	function () {
+		add_filter( 'is_upload_request', '__return_true' );
+	},
+	0
+);
+
 // Disable WP 7.1's client-side media processing; no-op on WP < 7.1, where this filter doesn't exist yet.
 add_filter( 'wp_client_side_media_processing_enabled', '__return_false' );
 
