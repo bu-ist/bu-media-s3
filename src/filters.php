@@ -111,9 +111,9 @@ add_action(
 	function () {
 		// phpcs:disable WordPress.Security.NonceVerification -- read-only; this action's own handler (priority 1, runs after this) nonce-checks via check_ajax_referer() before anything consequential happens, and wp_die()s if it fails.
 		$do = isset( $_POST['do'] ) ? sanitize_text_field( wp_unslash( $_POST['do'] ) ) : '';
-		// Read as wp_save_image() reads it.
+		// Read as wp_save_image() reads it. A non-string target is not 'thumbnail', so it is left to core.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- the pattern keeps only [a-z0-9_-].
-		$target = isset( $_REQUEST['target'] ) ? preg_replace( '/[^a-z0-9_-]+/i', '', wp_unslash( $_REQUEST['target'] ) ) : '';
+		$target = isset( $_REQUEST['target'] ) && is_string( $_REQUEST['target'] ) ? preg_replace( '/[^a-z0-9_-]+/i', '', wp_unslash( $_REQUEST['target'] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification
 
 		if ( 'save' === $do && 'thumbnail' === $target ) {
