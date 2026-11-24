@@ -102,12 +102,25 @@ add_filter(
 
 // Classic (non-block-editor) crop/rotate UI, via admin-ajax. Only 'save'/'scale' write new
 // derivatives; 'restore' reverts to the backed-up original through a different function.
+// A 'save' with target 'thumbnail' stays on the default editor: core deletes the edited full-size
+// file once it has made the thumbnail, so the thumbnail itself is written to original_media, where
+// the Object Lambda serves it as a pre-scaled original.
 // Priority 0 is required: core's own handler for this action registers at priority 1.
 add_action(
 	'wp_ajax_image-editor',
 	function () {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only; this action's own handler (priority 1, runs after this) nonce-checks via check_ajax_referer() before anything consequential happens, and wp_die()s if it fails.
-		if ( isset( $_POST['do'] ) && in_array( sanitize_text_field( wp_unslash( $_POST['do'] ) ), array( 'save', 'scale' ), true ) ) {
+		// phpcs:disable WordPress.Security.NonceVerification -- read-only; this action's own handler (priority 1, runs after this) nonce-checks via check_ajax_referer() before anything consequential happens, and wp_die()s if it fails.
+		$do = isset( $_POST['do'] ) ? sanitize_text_field( wp_unslash( $_POST['do'] ) ) : '';
+		// Read as wp_save_image() reads it. A non-string target is not 'thumbnail', so it is left to core.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- the pattern keeps only [a-z0-9_-].
+		$target = isset( $_REQUEST['target'] ) && is_string( $_REQUEST['target'] ) ? preg_replace( '/[^a-z0-9_-]+/i', '', wp_unslash( $_REQUEST['target'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification
+
+		if ( 'save' === $do && 'thumbnail' === $target ) {
+			return;
+		}
+
+		if ( in_array( $do, array( 'save', 'scale' ), true ) ) {
 			add_filter( 'is_image_edit_request', '__return_true' );
 		}
 	},
